@@ -2,24 +2,15 @@ name: Terraform Docs Check
 
 on:
   pull_request:
-    branches:
-      - main
-    paths:
-      - '**/*.tf'
-      - '**/*.md'
+    branches: [main]
 
 jobs:
-  terraform-docs-check:
+  terraform-docs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout repo
         uses: actions/checkout@v3
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: 1.21
 
       - name: Install terraform-docs
         run: |
@@ -27,11 +18,16 @@ jobs:
           tar -xzf terraform-docs.tar.gz
           sudo mv terraform-docs /usr/local/bin/
 
-      - name: Generate terraform-docs and check diff
+      - name: Generate terraform-docs and check for changes
         run: |
-          for d in $(find modules -maxdepth 2 -type d); do
+          for d in $(find modules -maxdepth 3 -type d); do
             if [ -f "$d/main.tf" ]; then
               terraform-docs markdown table "$d" > "$d/README.md"
             fi
           done
-          git diff --exit-code || (echo "❌ README.md is outdated. Run terraform-docs locally and commit the update." && exit 1)
+
+          # Check for any diff
+          git diff --exit-code || (
+            echo "❌ README.md is outdated. Please run 'terraform-docs' locally and commit the updated README.md files."
+            exit 1
+          )
