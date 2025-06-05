@@ -11,23 +11,15 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
+        with:
+         ref: ${{ github.event.pull_request.head.ref }}
 
-      - name: Install terraform-docs
-        run: |
-          curl -sSLo terraform-docs.tar.gz https://github.com/terraform-docs/terraform-docs/releases/download/v0.17.0/terraform-docs-v0.17.0-linux-amd64.tar.gz
-          tar -xzf terraform-docs.tar.gz
-          sudo mv terraform-docs /usr/local/bin/
+      - name: Render terraform docs and push changes back to PR
+        uses: terraform-docs/gh-actions@main
+        with:
+         working-dir: .
+         output-file: README.md
+         output-method: inject
+         git-push: "true"
 
-      - name: Generate terraform-docs and check for changes
-        run: |
-          for d in $(find modules -maxdepth 3 -type d); do
-            if [ -f "$d/main.tf" ]; then
-              terraform-docs markdown table "$d" > "$d/README.md"
-            fi
-          done
-
-          # Check for any diff
-          git diff --exit-code || (
-            echo "❌ README.md is outdated. Please run 'terraform-docs' locally and commit the updated README.md files."
-            exit 1
-          )
+      
